@@ -1,4 +1,4 @@
-import robocam.servos.servos as servos
+import piardservo.servos as servos
 
 
 def degree_to_other(pos, o_range, s_range=(0, 180)):
