@@ -1,0 +1,9 @@
+# created by virtualenv automatically
+piardservo/pyvenv.cfg
+
+
+bin/
+lib/
+__pycache__/
+*.ipynb*
+.idea/
