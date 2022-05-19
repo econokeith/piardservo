@@ -5,7 +5,7 @@ from gpiozero.pins.pigpio import PiGPIOFactory
 
 MOVE_KEYS = [['a', 'd'], ['s', 'w']]
 PINS = [22, 17]
-MOVE_SIZE = 1
+MOVE_SIZE = 10
 HOST='192.168.1.28'
 
 move_size = MOVE_SIZE * 2/180
@@ -38,8 +38,8 @@ def main():
         servo = Servo(
             pin,
             pin_factory=factory,
-            min_pulse_width=.001,
-            max_pulse_width=.002,
+            #min_pulse_width=.001,
+            #max_pulse_width=.002,
             initial_value=0
         )
 
@@ -91,9 +91,13 @@ def servo_saver(servo, move, i=""):
     new_value = servo.value + move
     if 1 > new_value > -1:
         return new_value
+    elif 1 < new_value:
+        print("Servo {0} is {1}".format(i, 1))
+        return 1.
     else:
-        print("Servo {0} is {1}".format(i, value))
-        return value
+        print("Servo {0} is {1}".format(i, -1))
+        return -1.
+
 
 
 if __name__=='__main__':
