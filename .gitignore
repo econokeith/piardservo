@@ -1,6 +1,7 @@
 # created by virtualenv automatically
 piardservo/pyvenv.cfg
 
+old_stuff/
 bin/
 lib/
 __pycache__/

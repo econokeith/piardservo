@@ -1,7 +1,7 @@
-import piardservo.servos as servos
+import piardservo.servos_base as base
 
 
-def degree_to_other(pos, o_range, s_range=(0, 180)):
+def degree_to_pulse_width(pos, o_range, s_range=(0, 180)):
     """
     converts degrees to the corresponding microsecond values
     """
@@ -11,14 +11,14 @@ def degree_to_other(pos, o_range, s_range=(0, 180)):
     return o_min + pos / (s_max-s_min) * (o_max-o_min)
 
 
-class AnglesList(list):
+class BoundedServoParamList(list):
     """
     helper data structure (inherets from list) for storing angle values that are within
     specified angle ranges.
 
     example for controller.a_range = [[0, 180], [70, 130]
 
-    >>> angles = AnglesList([90, 90], controller)
+    >>> angles = BoundedServoParamList([90, 90], controller)
     >>> angles[0] = 40000
     >>> print(angles)
     [180, 90]
@@ -32,7 +32,7 @@ class AnglesList(list):
 
         super().__init__(data)
 
-        assert issubclass(controller, servos.ServoController)
+        assert issubclass(controller, base.ServoController)
         self.controller = controller
         for i, v in enumerate(self):
             self[i] = v
@@ -68,3 +68,25 @@ class AnglesList(list):
                 val = v
 
             list.__setitem__(self, i, val)
+
+
+def servo_param_setter(n, min_max):
+    assert isinstance(min_max, (float, int, list, tuple))
+    # if max_max is a number
+    if isinstance(min_max, (float, int)):
+        return [min_max]*n
+    # if it's a number in a tuple or list form
+    elif isinstance(min_max, (list, tuple)) and len(min_max)==1:
+        return [min_max[0]]*n
+
+    elif len(min_max)==n:
+        for mm in min_max:
+            assert isinstance(mm, (float, int))
+        return min_max
+    else:
+        assert isinstance(min_max[0], (float, int))
+        out = [min_max[0]]*n
+        for mm in min_max[1:]:
+            assert len(mm)==2 and isinstance(mm[1], (float, int))
+            out[mm[0]]=mm[1]
+        return out
