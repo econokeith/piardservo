@@ -13,14 +13,15 @@ except Exception as exc:
 from piardservo.servos_base import ServoController
 from piardservo.servotools import degree_to_pulse_width
 
-
 class RPiServo(ServoController):
 
     def __init__(self,
                  address=None,
                  pins=(17,22),
-                 factory = None,
-                 **kwargs):
+                 **kwargs
+                 ):
+
+        self.address = address
 
         if isinstance(pins, int):
             n = 1
@@ -29,11 +30,6 @@ class RPiServo(ServoController):
 
         super().__init__(n=n, **kwargs)
 
-        if factory is None:
-            self.factory = PiGPIOFactory(host=address)
-        else:
-            self.factory = factory
-
         self.servos = []
         self.pins = pins
         self.initial_values = self.values
@@ -41,9 +37,11 @@ class RPiServo(ServoController):
         if self._connect is True:
             self.connect(pins)
 
-
     def connect(self, pins=None):
+
+        self.factory = PiGPIOFactory(host=self.address)
         _pins = self.pins if pins is None else pins
+
         for i, pin in enumerate(_pins):
             servo = gpiozero.Servo(pin,
                                    pin_factory=self.factory,
@@ -63,25 +61,8 @@ class RPiServo(ServoController):
         return True
 
     def close(self):
-        for servo in self.servos:
-            servo.close()
-        self.servos = []
+        self.factory.close()
 
     def write(self):
-        for i, servo in enumerate(self.servos):
-            servo.value = degree_to_pulse_width(self.angles[i], (-1, 1))
-
-def main():
-    import time
-    Servo = RPiServo('192.168.1.28')
-    print(Servo.is_open)
-    for i in range(4):
-        Servo.move((10*-1**i, 10*-1**i))
-        time.sleep(1)
-
-    Servo.close()
-
-
-if __name__=='__main__':
-    main()
-
+        for servo, value, flip in zip(self.servos, self.values, self.flip):
+            servo.value = value * (-1) ** flip

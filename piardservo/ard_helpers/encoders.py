@@ -1,6 +1,12 @@
-#very simple encoding scheme
+import abc
 
-class CommaDelimitedEncoder:
+class Encoder(abc.ABC):
+
+    @abc.abstractmethod
+    def encode_data(self, data):
+        pass
+
+class CommaDelimitedEncoder(Encoder):
     """
     comma delimited data to serial encoding from python to arduino
     
@@ -43,4 +49,34 @@ class CommaDelimitedEncoder:
         placeholder for future iterations
         """
         pass
+
+
+class TwoByteEncoder(Encoder):
+
+    def __init__(self,
+                 begin_message = 16,
+                 end_message = 17
+                 ):
+
+        self.begin_message = begin_message
+        self.end_message = end_message
+
+    def encode_data(self, data):
+
+        _message = [0, self.begin_message]
+
+        for pos, i in data:
+            foo1 = pos << 5
+            foo1 += i
+            n1 = foo1 >> 8
+            n2 = foo1 & 255
+            _message += [n1, n2]
+
+        _message.append(self.end_message)
+        return bytes(_message)
+
+
+
+
+
     

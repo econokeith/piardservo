@@ -1,4 +1,4 @@
-import piardservo.servos_base as base
+# import piardservo.servos_base as base
 
 
 def degree_to_pulse_width(pos, o_range, s_range=(0, 180)):
@@ -9,6 +9,19 @@ def degree_to_pulse_width(pos, o_range, s_range=(0, 180)):
     s_min, s_max = s_range
 
     return o_min + pos / (s_max-s_min) * (o_max-o_min)
+
+
+def linear_transform(x, range_0, range_1, flip=0):
+
+    min0, max0 = range_0
+
+    if flip == 0:
+        min1, max1 = range_1
+    else:
+        max1, min1 = range_1
+
+    return (x - min0)/(max0-min0)*(max1-min1) + min1
+
 
 
 class BoundedServoParamList(list):
@@ -32,7 +45,7 @@ class BoundedServoParamList(list):
 
         super().__init__(data)
 
-        assert issubclass(controller, base.ServoController)
+        #assert issubclass(controller, base.ServoController)
         self.controller = controller
         for i, v in enumerate(self):
             self[i] = v
@@ -69,24 +82,33 @@ class BoundedServoParamList(list):
 
             list.__setitem__(self, i, val)
 
+#todo turn the asserts into raises
+def servo_param_setter(n,
+                       param_values,
+                       old_values=None
+                       ):
 
-def servo_param_setter(n, min_max):
-    assert isinstance(min_max, (float, int, list, tuple))
+    assert isinstance(param_values, (float, int, list, tuple))
     # if max_max is a number
-    if isinstance(min_max, (float, int)):
-        return [min_max]*n
-    # if it's a number in a tuple or list form
-    elif isinstance(min_max, (list, tuple)) and len(min_max)==1:
-        return [min_max[0]]*n
+    if isinstance(param_values, (float, int)):
+        return [param_values] * n
 
-    elif len(min_max)==n:
-        for mm in min_max:
-            assert isinstance(mm, (float, int))
-        return min_max
-    else:
-        assert isinstance(min_max[0], (float, int))
-        out = [min_max[0]]*n
-        for mm in min_max[1:]:
-            assert len(mm)==2 and isinstance(mm[1], (float, int))
-            out[mm[0]]=mm[1]
+    elif isinstance(param_values, (list, tuple)) and len(param_values)==n:
+        for p_value in param_values:
+            assert isinstance(p_value, (float, int))
+        return param_values
+
+    elif isinstance(param_values, (list, tuple)) and isinstance(param_values[0], (int, float)):
+        out = [param_values[0]] * n
+        for p_value in param_values[1:]:
+            assert len(p_value) == 2 and isinstance(p_value[1], (float, int))
+            out[p_value[0]] = p_value[1]
         return out
+
+    elif isinstance(param_values, (list, tuple)) and old_values is not None:
+        for p_value in param_values:
+            old_values[p_value[0]] = old_values[p_value[1]]
+        return old_values
+
+    else:
+        raise Exception('Inputs not of the proper form')
