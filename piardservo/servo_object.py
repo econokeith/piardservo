@@ -1,10 +1,17 @@
 from piardservo.servotools import linear_transform
+import piardservo.container as cont
+import piardservo.microcontrollers as micro
 
 
 class ServoObject:
 
+    # microcontroller: micro.MicroController
+    # container: cont.ServoContainer
+
+    _i_counter = 0
+
     def __init__(self,
-                 i=1,
+                 i=None,
                  min_angle=-90,
                  max_angle=90,
                  initial_angle=0,
@@ -15,22 +22,21 @@ class ServoObject:
                  step_size=1,
                  min_pulse_width=1000,
                  max_pulse_width=2000,
-                 write_on_update = False,
-                 container = None
+                 write_on_update=False,
+                 container=None,
+                 microcontroller=None
                  ):
 
-        self._i = i
+        self._i = self._i_counter if i is None else i
 
         self.min_angle = min_angle
         self.max_angle = max_angle
-        self.initial_angle = initial_angle
         self.servo_range = servo_range
-        self.write_on_update = write_on_update
-        self.container = container
 
         if (max_angle - min_angle) > servo_range:
-            raise ValueError("Max Angle - Min Angle > Servo Range")
+            raise ValueError("(min_angle - max_angle) cannot be greater than servo_range")
 
+        self.initial_angle = initial_angle
         self.angle_format = angle_format
 
         if self.angle_format == 'minus_to_plus':
@@ -54,9 +60,23 @@ class ServoObject:
 
         self._angle = self.initial_angle
 
-        self._pulse_width = self.__measure_convert(self._angle, 'angle', 'pulse_width')
-        self._value = self.__measure_convert(self._angle, 'angle', 'value')
+        self.container = container
+
+        if microcontroller is None and self.container is not None:
+            self.microcontroller = self.container.microcontroller
+        else:
+            self.microcontroller = microcontroller
+
+        self.write_on_update = write_on_update
         self._written = True
+
+        self._i_counter += 1
+
+    def __str__(self):
+        return f'<ServoObject(i={self._i}, a={int(self.angle)}, pw={int(self.pulse_width)}, v={self.value:.2f})>'
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def i(self):
@@ -68,6 +88,8 @@ class ServoObject:
 
     @min_pulse_width.setter
     def min_pulse_width(self, pw):
+        if issubclass(self.microcontroller, micro.RPiMicroController):
+            raise AttributeError("RPi pulse width bounds cannot be changed after instantiation")
         self._min_pulse_width = pw
 
     @property
@@ -76,6 +98,8 @@ class ServoObject:
 
     @max_pulse_width.setter
     def max_pulse_width(self, pw):
+        if issubclass(self.microcontroller, micro.RPiMicroController):
+            raise AttributeError("RPi pulse width bounds cannot be changed after instantiation")
         self._max_pulse_width = pw
 
     @property
@@ -94,8 +118,11 @@ class ServoObject:
 
         self._written = False
 
-        if self.write_on_update is True and self.container is not None:
-            self.container.microcontroller.write()
+        if self.write_on_update is True and self.microcontroller is not None:
+            if self.microcontroller.is_open():
+                self.microcontroller.write()
+            else:
+                raise RuntimeError("MicroController connection is not open")
 
     @property
     def pulse_width(self):
@@ -129,16 +156,16 @@ class ServoObject:
         self._center_angle_offset = new_offset
 
     def reset(self):
-        self.angles = self.initial_angle
+        self.angle = self.initial_angle
 
     def min(self):
-        self.angles = self.min_angle
+        self.angle = self.min_angle
 
     def mid(self):
-        self.angles = self.center_angle
+        self.angle = self.center_angle
 
     def max(self):
-        self.angles = self.max_angle
+        self.angle = self.max_angle
 
     def __get_range(self, measure):
         if measure == 'value':
@@ -153,10 +180,3 @@ class ServoObject:
         r1 = self.__get_range(m1)
         _flip = self.flip if flip is None else flip
         return linear_transform(x, r0, r1, _flip)
-
-
-
-
-
-
-
